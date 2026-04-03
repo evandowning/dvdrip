@@ -1,44 +1,50 @@
 # dvdrip
 
-Rip DVDs quickly and easily from the commandline.
+<!--- BADGES: START --->
+[![CI](https://github.com/evandowning/dvdrip/actions/workflows/tests.yml/badge.svg)](https://github.com/evandowning/dvdrip/actions/workflows/tests.yml)
+[![PyPI version](https://badge.fury.io/py/dvdrip.svg)](https://pypi.org/project/dvdrip)
+[![Packaging status](https://repology.org/badge/tiny-repos/python:dvdrip.svg)](https://repology.org/project/python:dvdrip/versions)
+<!--- BADGES: END --->
 
-## Dependencies
-  - [Python3](https://www.python.org/)
-  - [HandBrakeCLI](https://handbrake.fr/)
+Rip DVDs quickly and easily from the command line. Encodes to mp4 (h.264 video, AAC audio) with all audio tracks, subtitles, and chapter markers preserved.
 
-## NOTE
-This script has been tested on both Linux and Mac OS X with Python 3,
-HandBrakeCLI and VLC installed (and also MacPorts in the case of OS X).
+## Requirements
 
-## Features
-  - With minimal configuration:
-    - Encodes videos in mp4 files with h.264 video and aac audio.
-      (compatible with a wide variety of media players without
-      additional transcoding, including PS3, Roku, and most smart
-      phones, smart TVs and tablets).
-    - Preserves all audio tracks, all subtitle tracks, and chapter
-      markers.
-    - Intelligently chooses output filename based on a provided prefix.
-    - Generates one video file per DVD title, or optionally one per
-      chapter.
-  - Easy to read "scan" mode tells you what you need need to know about
-    a disk to decide on how to rip it.
+- Python 3.13+
+- [HandBrakeCLI](https://handbrake.fr/downloads2.php)
+
+## Build
+
+```shell
+make build
+```
 
 ## Usage
-```
-$ python3 dvdrip.py -h
+
+### Scan the disc
+
+```shell
+uv run dvdrip --scan -i /dev/cdrom
 ```
 
-## Examples
-  - Determine number of chapters
-    ```
-    $ python3 dvdrip.py --scan -i /path/to/cdrom
-    ```
-  - Rip Movie (one file for the movie)
-    ```
-    $ python3 dvdrip.py -i /path/to/cdrom -o output_name
-    ```
-  - Rip TV Show (one file per episode)
-    ```
-    $ python3 dvdrip.py -c -i /path/to/cdrom -o output_name
-    ```
+### Rip a movie
+
+```shell
+uv run dvdrip --main-feature -i /dev/cdrom -o movie
+```
+
+Outputs `movie.mp4` file.
+
+### Rip a tv show
+
+```shell
+uv run dvdrip -c -i /dev/cdrom -o show
+```
+
+This creates a `show/` directory containing `Title01_01.mp4`, `Title01_02.mp4`, etc.
+
+## Development
+
+```shell
+make format lint test
+```
