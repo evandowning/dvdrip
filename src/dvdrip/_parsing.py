@@ -39,7 +39,12 @@ _AUDIO_TRACK_REGEX = re.compile(
 )
 
 _AUDIO_TRACK_FIELD_REGEX = re.compile(
-    r"^\(([^)]*)\)\s*\(([^)]*?)\s*ch\)\s*"
+    r"^\(([^),]+)\)\s*\(([^)]*?)\s*ch\)\s*"
+    r"((?:\([^()]*\)\s*)*)\(iso639-2:\s*([^)]+)\)$",
+)
+
+_AUDIO_TRACK_FIELD_COMBINED_REGEX = re.compile(
+    r"^\(([^,]+),\s*([^,]*?)\s*ch(?:,\s*[^)]*)?\)\s*"
     r"((?:\([^()]*\)\s*)*)\(iso639-2:\s*([^)]+)\)$",
 )
 
@@ -294,6 +299,8 @@ def parse_audio_tracks(d: dict[str, str]) -> list[AudioTrack]:
         if m:
             lang, field_string, extras = m.groups()
             m2 = _AUDIO_TRACK_FIELD_REGEX.match(field_string)
+            if not m2:
+                m2 = _AUDIO_TRACK_FIELD_COMBINED_REGEX.match(field_string)
             if m2:
                 codec, channels, more_extras, iso639_2 = m2.groups()
                 if more_extras:

@@ -125,7 +125,7 @@ def _run(settings: Settings) -> None:
     )
     _logger.info("Reading from %r", dvd.mountpoint)
     title_numbers = _parse_titles_arg(settings.titles)
-    titles = dvd.scan_titles(title_numbers, verbose=settings.verbose)
+    titles = dvd.scan_titles(title_numbers)
 
     if settings.scan:
         display_scan(titles)

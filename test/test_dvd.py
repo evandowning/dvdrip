@@ -1,13 +1,12 @@
 """Tests for dvdrip._dvd."""
 
 import logging
-import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from dvdrip._dvd import DVD, find_mount_point
+from dvdrip._dvd import DVD, _make_title, find_mount_point
 from dvdrip._errors import UserError
 from dvdrip._models import Duration, Task, Title, TitleInfo
 
@@ -161,6 +160,29 @@ class TestDVDScanTitle:
         assert "< scan output" in caplog.text
 
 
+class TestDVDScanAll:
+    def test_returns_lines(self, tmp_path: Path) -> None:
+        dvd = DVD(str(tmp_path), verbose=False)
+        with patch("dvdrip._dvd.check_err") as mock:
+            mock.return_value = "line1\nline2\n"
+            lines = dvd.scan_all()
+            assert "line1" in lines
+            args = mock.call_args[0][0]
+            assert "--title" in args
+            assert "0" in args
+
+    def test_verbose_logs(
+        self,
+        tmp_path: Path,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        dvd = DVD(str(tmp_path), verbose=True)
+        with patch("dvdrip._dvd.check_err") as mock, caplog.at_level(logging.DEBUG):
+            mock.return_value = "scan output\n"
+            dvd.scan_all()
+        assert "< scan output" in caplog.text
+
+
 class TestDVDScanTitles:
     def test_single_title(self, tmp_path: Path) -> None:
         dvd = DVD(str(tmp_path), verbose=False)
@@ -176,14 +198,14 @@ class TestDVDScanTitles:
             "  + subtitle tracks:",
             "    + 1, English (Bitmap)(VOBSUB)",
         ]
-        with patch.object(dvd, "scan_title", return_value=scan_output):
-            titles = dvd.scan_titles(None, verbose=False)
+        with patch.object(dvd, "scan_all", return_value=scan_output):
+            titles = dvd.scan_titles(None)
             assert len(titles) == 1
             assert titles[0].number == 1
 
     def test_multiple_titles(self, tmp_path: Path) -> None:
         dvd = DVD(str(tmp_path), verbose=False)
-        scan1 = [
+        scan_output = [
             "Scanning title 1 of 2...",
             "+ title 1:",
             "  + duration: 01:00:00",
@@ -194,8 +216,6 @@ class TestDVDScanTitles:
             "    + 1, English (AC3) (5.1 ch) (iso639-2: eng), 48000Hz",
             "  + subtitle tracks:",
             "    + 1, English (Bitmap)(VOBSUB)",
-        ]
-        scan2 = [
             "+ title 2:",
             "  + duration: 00:30:00",
             "  + size: 720x480, pixel aspect: 8/9, display aspect: 1.33, 29.97 fps",
@@ -206,25 +226,45 @@ class TestDVDScanTitles:
             "  + subtitle tracks:",
             "    + 1, English (Bitmap)(VOBSUB)",
         ]
-
-        def scan_side_effect(i: int) -> list[str]:
-            return scan1 if i == 1 else scan2
-
-        with patch.object(dvd, "scan_title", side_effect=scan_side_effect):
-            titles = dvd.scan_titles(None, verbose=False)
+        with patch.object(dvd, "scan_all", return_value=scan_output):
+            titles = dvd.scan_titles(None)
             assert len(titles) == 2
             assert titles[0].number == 1
             assert titles[1].number == 2
 
-    def test_empty_scan_warns(
-        self,
-        tmp_path: Path,
-        caplog: pytest.LogCaptureFixture,
-    ) -> None:
+    def test_skipped_title_numbers(self, tmp_path: Path) -> None:
         dvd = DVD(str(tmp_path), verbose=False)
-        scan1 = [
-            "Scanning title 1 of 2...",
-            "+ title 1:",
+        scan_output = [
+            "Scanning title 2 of 8...",
+            "+ title 2:",
+            "  + duration: 03:00:18",
+            "  + size: 720x480, pixel aspect: 8/9, display aspect: 1.33, 29.97 fps",
+            "  + chapters:",
+            "    + 1: duration 03:00:18",
+            "  + audio tracks:",
+            "    + 1, English (AC3) (5.1 ch) (iso639-2: eng), 48000Hz",
+            "  + subtitle tracks:",
+            "    + 1, English (Bitmap)(VOBSUB)",
+            "+ title 3:",
+            "  + duration: 00:30:00",
+            "  + size: 720x480, pixel aspect: 8/9, display aspect: 1.33, 29.97 fps",
+            "  + chapters:",
+            "    + 1: duration 00:30:00",
+            "  + audio tracks:",
+            "    + 1, English (AC3) (5.1 ch) (iso639-2: eng), 48000Hz",
+            "  + subtitle tracks:",
+            "    + 1, English (Bitmap)(VOBSUB)",
+        ]
+        with patch.object(dvd, "scan_all", return_value=scan_output):
+            titles = dvd.scan_titles(None)
+            assert len(titles) == 2
+            assert titles[0].number == 2
+            assert titles[1].number == 3
+
+    def test_filter_by_title_numbers(self, tmp_path: Path) -> None:
+        dvd = DVD(str(tmp_path), verbose=False)
+        scan_output = [
+            "+ title 2:",
             "  + duration: 01:00:00",
             "  + size: 720x480, pixel aspect: 8/9, display aspect: 1.33, 29.97 fps",
             "  + chapters:",
@@ -233,65 +273,41 @@ class TestDVDScanTitles:
             "    + 1, English (AC3) (5.1 ch) (iso639-2: eng), 48000Hz",
             "  + subtitle tracks:",
             "    + 1, English (Bitmap)(VOBSUB)",
-        ]
-
-        call_count = 0
-        original_parse = __import__(
-            "dvdrip._parsing", fromlist=["parse_title_scan"]
-        ).parse_title_scan
-
-        def parse_side_effect(scan: object) -> dict:
-            nonlocal call_count
-            call_count += 1
-            if call_count > 1:
-                return {}
-            return original_parse(scan)
-
-        def scan_side_effect(i: int) -> list[str]:
-            if i == 1:
-                return scan1
-            return ["no structured data here"]
-
-        with (
-            patch.object(dvd, "scan_title", side_effect=scan_side_effect),
-            patch("dvdrip._dvd.parse_title_scan", side_effect=parse_side_effect),
-            caplog.at_level(logging.WARNING),
-        ):
-            titles = dvd.scan_titles(None, verbose=False)
-            assert len(titles) == 1
-        assert "Cannot parse" in caplog.text
-
-    def test_scan_failure_warns(
-        self,
-        tmp_path: Path,
-        caplog: pytest.LogCaptureFixture,
-    ) -> None:
-        dvd = DVD(str(tmp_path), verbose=False)
-        scan_output = [
-            "Scanning title 1 of 2...",
-            "+ title 1:",
-            "  + duration: 01:30:00",
+            "+ title 3:",
+            "  + duration: 00:30:00",
             "  + size: 720x480, pixel aspect: 8/9, display aspect: 1.33, 29.97 fps",
             "  + chapters:",
-            "    + 1: duration 00:45:00",
+            "    + 1: duration 00:30:00",
             "  + audio tracks:",
             "    + 1, English (AC3) (5.1 ch) (iso639-2: eng), 48000Hz",
             "  + subtitle tracks:",
             "    + 1, English (Bitmap)(VOBSUB)",
         ]
-
-        def scan_side_effect(i: int) -> list[str]:
-            if i == 1:
-                return scan_output
-            raise subprocess.CalledProcessError(1, "HandBrakeCLI")
-
-        with (
-            patch.object(dvd, "scan_title", side_effect=scan_side_effect),
-            caplog.at_level(logging.WARNING),
-        ):
-            titles = dvd.scan_titles(None, verbose=False)
+        with patch.object(dvd, "scan_all", return_value=scan_output):
+            titles = dvd.scan_titles([3])
             assert len(titles) == 1
-        assert "Cannot scan" in caplog.text
+            assert titles[0].number == 3
+
+    def test_extra_fields_ignored(self, tmp_path: Path) -> None:
+        dvd = DVD(str(tmp_path), verbose=False)
+        scan_output = [
+            "+ title 2:",
+            "  + Main Feature",
+            "  + index 2",
+            "  + duration: 03:00:18",
+            "  + size: 720x480, pixel aspect: 8/9, display aspect: 1.33, 29.970 fps",
+            "  + autocrop: 0/0/8/8",
+            "  + chapters:",
+            "    + 1: duration 03:00:18",
+            "  + audio tracks:",
+            "    + 1, English (AC3, 2.0 ch, 192 kbps) (iso639-2: eng), 48000Hz, 192000bps",
+            "  + subtitle tracks:",
+            "    + 1, English (4:3) [VOBSUB]",
+        ]
+        with patch.object(dvd, "scan_all", return_value=scan_output):
+            titles = dvd.scan_titles(None)
+            assert len(titles) == 1
+            assert titles[0].number == 2
 
 
 class TestDVDEject:
@@ -326,3 +342,9 @@ class TestDVDEject:
         ):
             dvd.eject()
             assert mock_ctypes.windll.WINMM.mciSendStringW.call_count == 2
+
+
+class TestMakeTitle:
+    def test_invalid_name_raises(self) -> None:
+        with pytest.raises(ValueError, match="Unexpected title name"):
+            _make_title("not a title", {})

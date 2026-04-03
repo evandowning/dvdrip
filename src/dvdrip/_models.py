@@ -67,7 +67,11 @@ class SubtitleTrack(BaseModel):
 class TitleInfo(BaseModel):
     """Parsed information about a DVD title from HandBrakeCLI scan output."""
 
-    model_config = ConfigDict(frozen=True, populate_by_name=True)
+    model_config = ConfigDict(
+        frozen=True,
+        populate_by_name=True,
+        extra="ignore",
+    )
 
     duration: Duration
     size: str

@@ -38,7 +38,7 @@ Outputs `movie.mp4` file.
 ### Rip a tv show
 
 ```shell
-uv run dvdrip -c -i /dev/cdrom -o show
+uv run dvdrip -i /dev/cdrom -o show
 ```
 
 This creates a `show/` directory containing `Title01_01.mp4`, `Title01_02.mp4`, etc.

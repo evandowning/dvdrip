@@ -16,8 +16,6 @@ from dvdrip._models import Task, Title, TitleInfo
 from dvdrip._parsing import (
     extract_duration,
     extract_title_scan,
-    find_title_count,
-    only,
     parse_title_scan,
 )
 from dvdrip._subprocess import check_err, check_output
@@ -166,50 +164,52 @@ class DVD:
             lines.append(line)
         return lines
 
+    def scan_all(self) -> list[str]:
+        """Scan all DVD titles at once and return output lines.
+
+        Returns:
+            List of scan output lines.
+        """
+        lines = []
+        for line in check_err(
+            [
+                HANDBRAKE,
+                "--scan",
+                "--title",
+                "0",
+                "-i",
+                self.mountpoint,
+            ],
+            stdout=subprocess.PIPE,
+        ).split(os.linesep):
+            if self.verbose:
+                _logger.debug("< %s", line.rstrip())
+            lines.append(line)
+        return lines
+
     def scan_titles(
         self,
         title_numbers: list[int] | None,
-        *,
-        verbose: bool,
     ) -> list[Title]:
         """Scan multiple DVD titles and return parsed Title models.
 
         Args:
             title_numbers: List of title numbers to scan, or None for all.
-            verbose: If True, print progress information.
 
         Returns:
             List of parsed Title models.
         """
-        first = title_numbers[0] if title_numbers else 1
-        raw_scan = tuple(self.scan_title(first))
-        title_count = find_title_count(raw_scan, verbose=verbose)
-        _logger.info("Disc claims to have %d titles.", title_count)
-        title_name, title_info = only(
-            parse_title_scan(extract_title_scan(raw_scan)).items(),
-        )
+        raw_scan = self.scan_all()
+        scan_lines = extract_title_scan(raw_scan)
+        parsed = parse_title_scan(scan_lines)
+        _logger.info("Disc has %d title(s).", len(parsed))
 
-        titles = [_make_title(title_name, first, title_info)]
-
-        to_scan = [
-            x
-            for x in range(1, title_count + 1)
-            if x != first and (not title_numbers or x in title_numbers)
-        ]
-        for i in to_scan:
-            try:
-                scan = extract_title_scan(self.scan_title(i))
-            except subprocess.CalledProcessError:
-                _logger.warning("Cannot scan title %d.", i)
-            else:
-                title_info_names = parse_title_scan(scan).items()
-                if title_info_names:
-                    title_name, title_info = only(title_info_names)
-                    titles.append(
-                        _make_title(title_name, i, title_info),
-                    )
-                else:
-                    _logger.warning("Cannot parse scan of title %d.", i)
+        titles = []
+        for title_name, title_info in parsed.items():
+            title = _make_title(title_name, title_info)
+            if title_numbers and title.number not in title_numbers:
+                continue
+            titles.append(title)
         return titles
 
     def eject(self) -> None:
@@ -244,17 +244,27 @@ class DVD:
             )
 
 
-def _make_title(name: str, number: int, info: dict) -> Title:
+_TITLE_NAME_RE = re.compile(r"^title (\d+)$")
+
+
+def _make_title(name: str, info: dict) -> Title:
     """Create a Title model from raw parsed data.
 
     Args:
-        name: Title name from scan (e.g. "title 1").
-        number: Title number.
+        name: Title name from scan (e.g. "title 2").
         info: Raw parsed info dictionary.
+
+    Raises:
+        ValueError: If the title name format is unexpected.
 
     Returns:
         A Title model.
     """
-    assert f"title {number}" == name  # noqa: S101
+    m = _TITLE_NAME_RE.match(name)
+    if not m:
+        msg = f"Unexpected title name format: {name!r}"
+        raise ValueError(msg)
+    number = int(m.group(1))
+    info = {k: v for k, v in info.items() if k is not None}
     info["duration"] = extract_duration("duration " + info["duration"])
     return Title(number=number, info=TitleInfo(**info))

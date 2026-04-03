@@ -152,6 +152,15 @@ class TestParseAudioTracks:
         assert tracks[0].channels == "5.1"
         assert tracks[0].iso639_2 == "eng"
 
+    def test_combined_format(self) -> None:
+        d = {"1": "English (AC3, 2.0 ch, 192 kbps) (iso639-2: eng), 48000Hz, 192000bps"}
+        tracks = parse_audio_tracks(d)
+        assert len(tracks) == 1
+        assert tracks[0].lang == "English"
+        assert tracks[0].codec == "AC3"
+        assert tracks[0].channels == "2.0"
+        assert tracks[0].iso639_2 == "eng"
+
     def test_with_more_extras(self) -> None:
         d = {"1": "English (AC3) (5.1 ch) (extra info) (iso639-2: eng), 48000Hz"}
         tracks = parse_audio_tracks(d)
