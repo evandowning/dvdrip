@@ -21,27 +21,9 @@ make build
 
 ## Usage
 
-### Scan the disc
-
 ```shell
-uv run dvdrip --scan -i /dev/cdrom
+uv run dvdrip -i /dev/cdrom -o output
 ```
-
-### Rip a movie
-
-```shell
-uv run dvdrip --main-feature -i /dev/cdrom -o movie
-```
-
-Outputs `movie.mp4` file.
-
-### Rip a tv show
-
-```shell
-uv run dvdrip -i /dev/cdrom -o show
-```
-
-This creates a `show/` directory containing `Title01_01.mp4`, `Title01_02.mp4`, etc.
 
 ## Development
 
