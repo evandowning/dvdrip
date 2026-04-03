@@ -6,6 +6,7 @@ import os
 import re
 import stat
 import subprocess
+import sys
 import time
 from pathlib import Path
 from pprint import pformat
@@ -218,10 +219,15 @@ class DVD:
             self._eject_windows()
             return
 
+        cmd = (
+            ["diskutil", "eject", self.mountpoint]
+            if sys.platform == "darwin"
+            else ["eject", self.mountpoint]
+        )
         for _ in range(
             TOTAL_EJECT_SECONDS * EJECT_ATTEMPTS_PER_SECOND,
         ):
-            if not subprocess.call(["eject", self.mountpoint]):  # noqa: S603, S607
+            if not subprocess.call(cmd):  # noqa: S603
                 return
             time.sleep(1.0 / EJECT_ATTEMPTS_PER_SECOND)
 
