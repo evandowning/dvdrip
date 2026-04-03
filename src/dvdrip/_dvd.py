@@ -85,6 +85,7 @@ class DVD:
         task: Task,
         output: str,
         *,
+        preset: str,
         dry_run: bool,
         verbose: bool,
     ) -> None:
@@ -93,6 +94,7 @@ class DVD:
         Args:
             task: The ripping task containing title and chapter info.
             output: Output file path.
+            preset: HandBrakeCLI preset name.
             dry_run: If True, do not actually write files.
             verbose: If True, print detailed progress.
         """
@@ -108,9 +110,7 @@ class DVD:
             "--title",
             str(task.title.number),
             "--preset",
-            "Production Standard",
-            "--encoder",
-            "x264",
+            preset,
             "--audio",
             ",".join(audio_tracks),
             "--aencoder",

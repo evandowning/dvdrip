@@ -107,7 +107,7 @@ class TestPerformTasks:
         filenames = ["out_01.mp4", "out_02.mp4"]
 
         with caplog.at_level(logging.INFO):
-            perform_tasks(dvd, tasks, filenames, dry_run=False, verbose=False)
+            perform_tasks(dvd, tasks, filenames, preset="Test", dry_run=False, verbose=False)
 
         assert dvd.rip_title.call_count == 2
         assert "Title 1" in caplog.text
@@ -120,5 +120,5 @@ class TestPerformTasks:
         filenames = ["out.mp4"]
 
         with caplog.at_level(logging.INFO):
-            perform_tasks(dvd, tasks, filenames, dry_run=True, verbose=False)
+            perform_tasks(dvd, tasks, filenames, preset="Test", dry_run=True, verbose=False)
         assert "Title 1" in caplog.text

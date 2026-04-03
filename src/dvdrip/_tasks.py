@@ -108,11 +108,12 @@ def _multi_filename(task: Task, output: str) -> str:
     )
 
 
-def perform_tasks(
+def perform_tasks(  # noqa: PLR0913
     dvd: DVD,
     tasks: list[Task],
     filenames: list[str],
     *,
+    preset: str,
     dry_run: bool = False,
     verbose: bool = False,
 ) -> None:
@@ -122,6 +123,7 @@ def perform_tasks(
         dvd: A DVD instance.
         tasks: List of ripping tasks.
         filenames: Output filenames for each task.
+        preset: HandBrakeCLI preset name.
         dry_run: If True, do not actually rip.
         verbose: If True, print detailed progress.
     """
@@ -144,4 +146,4 @@ def perform_tasks(
                 num_chapters,
                 filename,
             )
-        dvd.rip_title(task, filename, dry_run=dry_run, verbose=verbose)
+        dvd.rip_title(task, filename, preset=preset, dry_run=dry_run, verbose=verbose)

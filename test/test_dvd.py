@@ -77,7 +77,7 @@ class TestDVDRipTitle:
         task = Task(title=title, chapter=None)
 
         with patch("dvdrip._dvd.subprocess.call") as mock_call:
-            dvd.rip_title(task, "output.mp4", dry_run=True, verbose=False)
+            dvd.rip_title(task, "output.mp4", preset="Test", dry_run=True, verbose=False)
             mock_call.assert_not_called()
 
     def test_verbose_logs(
@@ -91,7 +91,7 @@ class TestDVDRipTitle:
         task = Task(title=title, chapter=None)
 
         with caplog.at_level(logging.DEBUG):
-            dvd.rip_title(task, "output.mp4", dry_run=True, verbose=True)
+            dvd.rip_title(task, "output.mp4", preset="Test", dry_run=True, verbose=True)
         assert "Title Scan:" in caplog.text
 
     def test_calls_handbrake(self, tmp_path: Path) -> None:
@@ -101,7 +101,7 @@ class TestDVDRipTitle:
         task = Task(title=title, chapter=None)
 
         with patch("dvdrip._dvd.check_err") as mock:
-            dvd.rip_title(task, "output.mp4", dry_run=False, verbose=False)
+            dvd.rip_title(task, "output.mp4", preset="Test", dry_run=False, verbose=False)
             mock.assert_called_once()
             args = mock.call_args[0][0]
             assert args[0] == "HandBrakeCLI"
@@ -113,7 +113,7 @@ class TestDVDRipTitle:
         task = Task(title=title, chapter=None)
 
         with patch("dvdrip._dvd.subprocess.call") as mock_call:
-            dvd.rip_title(task, "output.mp4", dry_run=False, verbose=True)
+            dvd.rip_title(task, "output.mp4", preset="Test", dry_run=False, verbose=True)
             mock_call.assert_called_once()
 
     def test_with_chapter(self, tmp_path: Path) -> None:
@@ -123,7 +123,7 @@ class TestDVDRipTitle:
         task = Task(title=title, chapter=2)
 
         with patch("dvdrip._dvd.check_err") as mock:
-            dvd.rip_title(task, "output.mp4", dry_run=False, verbose=False)
+            dvd.rip_title(task, "output.mp4", preset="Test", dry_run=False, verbose=False)
             args = mock.call_args[0][0]
             assert "--chapters" in args
             assert "2" in args
@@ -135,7 +135,7 @@ class TestDVDRipTitle:
         task = Task(title=title)
 
         with patch("dvdrip._dvd.check_err") as mock:
-            dvd.rip_title(task, "output.mp4", dry_run=False, verbose=False)
+            dvd.rip_title(task, "output.mp4", preset="Test", dry_run=False, verbose=False)
             args = mock.call_args[0][0]
             assert "--subtitle" in args
 

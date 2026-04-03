@@ -51,6 +51,11 @@ class Settings(BaseSettings, cli_parse_args=True, cli_exit_on_error=True):
         validation_alias=AliasChoices("main-feature", "main_feature"),
         description="Rip only the main feature title.",
     )
+    preset: str = Field(
+        default="Amazon Fire 2160p60 4K HEVC Surround",
+        validation_alias=AliasChoices("p", "preset"),
+        description="HandBrakeCLI preset name.",
+    )
     titles: str = Field(
         default="*",
         validation_alias=AliasChoices("t", "titles"),
@@ -170,6 +175,7 @@ def _rip(settings: Settings, dvd: DVD, titles: list) -> None:
         dvd,
         tasks,
         filenames,
+        preset=settings.preset,
         dry_run=settings.dry_run,
         verbose=settings.verbose,
     )
