@@ -6,12 +6,12 @@
 [![Packaging status](https://repology.org/badge/tiny-repos/python:dvdrip.svg)](https://repology.org/project/python:dvdrip/versions)
 <!--- BADGES: END --->
 
-Rip DVDs quickly and easily from the command line. Encodes to mp4 (h.264 video, AAC audio) with all audio tracks, subtitles, and chapter markers preserved.
+Rip DVDs quickly and easily from the command line. Encodes to mp4 (h.265 video, AAC audio) with all audio tracks, subtitles, and chapter markers preserved.
 
 ## Requirements
 
-- Python 3.13+
-- [HandBrakeCLI](https://handbrake.fr/downloads2.php)
+* [uv](https://docs.astral.sh/uv/)
+* [HandBrakeCLI](https://handbrake.fr/downloads2.php)
 
 ## Build
 
