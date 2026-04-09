@@ -52,7 +52,7 @@ class Settings(BaseSettings, cli_parse_args=True, cli_exit_on_error=True):
         description="Rip only the main feature title.",
     )
     preset: str = Field(
-        default="Amazon Fire 2160p60 4K HEVC Surround",
+        default="HQ 2160p60 4K AV1 Surround",
         validation_alias=AliasChoices("p", "preset"),
         description="HandBrakeCLI preset name.",
     )
